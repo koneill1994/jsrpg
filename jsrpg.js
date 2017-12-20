@@ -8,8 +8,8 @@ var ms_frame_delay=30;
 var t=0;
 
 var player={
-  x: 200,
-  y: 200,
+  x: -200,
+  y: -200,
   color: '#000000',
   size: 16,
   speed: 4
@@ -83,6 +83,7 @@ function checkbounds(player, objects){
   return true;
 }
 
+//check if the object is colliding with anything else
 function checkbounds_movesafe(x1,x2,y1,y2, objects){
   for(var i=0; i<objects.length; i++){
     if(x1 < objects[i].x+objects[i].sizex &&
@@ -95,6 +96,7 @@ function checkbounds_movesafe(x1,x2,y1,y2, objects){
   return true;
 }
 
+//move the player while avoiding colliding with things in objects
 function move_safe(player, objects, key){
   if(key==37){
     var x1=player.x-player.speed;
@@ -160,10 +162,7 @@ function color_pulse(t){
       (c1[1]*s + c2[1]*(1-s))/2,
       (c1[2]*s + c2[2]*(1-s))/2,
   ]
-  
-  o.frequency.value=1000*((Math.sin((t/period) * 2 * Math.PI)+1)/2)+750;
-
-  
+  //o.frequency.value=1000*((Math.sin((t/period) * 2 * Math.PI)+1)/2)+750;
   return clist_to_string(c3)
   
 }
@@ -201,6 +200,29 @@ function UpdateScreenPos(player){
   
 }
 
+function DrawTextBox(ctx, text, t, text_start){
+  fontSize=20;
+  
+  text_new = text.substring(0, t-text_start)
+  
+  ctx.fillStyle = "#444444";
+  ctx.globalAlpha = 0.6;
+  ctx.fillRect(50,canvas.height-300,canvas.width-100,250);
+  ctx.globalAlpha = 1.0;
+  
+  // use measureText(text) to figure out how to get it to go onto the next line
+  
+  
+  ctx.fillStyle = "#ffffff"
+  ctx.font = fontSize+'px Arial';
+  ctx.fillText(text_new,80,canvas.height-270);
+  
+}
+
+
+
+
+
 
 var context = new AudioContext()
 var o = context.createOscillator()
@@ -208,6 +230,9 @@ o.type = "triangle"
 o.connect(context.destination)
 //o.start()
 
+
+var tstart=false;
+var text_t = 0;
 
 function draw(){
     if (canvas.getContext){
@@ -233,27 +258,22 @@ function draw(){
       }
 
       // change physics in the draw loop because we're smart
-      /*
-      if (keys && keys[37]) {player.x-=player.speed; }
-      if (keys && keys[39]) {player.x+=player.speed; }
-      if (keys && keys[38]) {player.y-=player.speed; }
-      if (keys && keys[40]) {player.y+=player.speed; }
-      */
-      
-
-             
       if (keys && (keys[37] || keys[65])) {move_safe(player, objects, 37); }
       if (keys && (keys[39] || keys[68])) {move_safe(player, objects, 39); }
       if (keys && (keys[38] || keys[87])) {move_safe(player, objects, 38); }
       if (keys && (keys[40] || keys[83])) {move_safe(player, objects, 40); }
       
+      // text box test
+      if (keys && keys[32]) {
+        if(!tstart){
+          text_t=t;
+          tstart=!tstart;
+        }
+        DrawTextBox(ctx, "four score and seven years ago our forefathers brought fourth a new nation conceived in liberty and the pursuit of happiness", t, text_t)
+      }
       
-      if(!checkbounds(player,objects)){
-        ctx.fillStyle="#ffffff"
-      }
-      else{
+
       ctx.fillStyle = player.color;
-      }
       scoord = global2local(player, screen);
       ctx.fillRect(scoord.x,scoord.y,player.size,player.size);
       
