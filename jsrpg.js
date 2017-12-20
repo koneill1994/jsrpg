@@ -72,21 +72,6 @@ function getRndInteger(min, max) {
     return Math.floor(Math.random() * (max - min) ) + min;
 } 
 
-function checkbounds(player, objects){
-  for(var i=0; i<objects.length; i++){
-    if( ( (player.x > objects[i].x) && (player.x < objects[i].x + objects[i].sizex) ) ||
-     (player.x+player.size > objects[i].x) && (player.x+player.size < objects[i].x + objects[i].sizex) ){
-       
-     if( ( (player.y > objects[i].y) && (player.y < objects[i].y + objects[i].sizey) ) ||
-     (player.y+player.size > objects[i].y) && (player.y+player.size < objects[i].y + objects[i].sizey) ){
-       
-       return false;    
-      }
-    }
-  }
-  return true;
-}
-
 //check if the object is colliding with anything else
 function checkbounds_movesafe(x1,x2,y1,y2, objects){
   for(var i=0; i<objects.length; i++){
@@ -204,6 +189,7 @@ function UpdateScreenPos(player){
   
 }
 
+//wrap text around based on text box size
 function stringwrap(ctx, boxwidth, boxheight, text){
   strings=[]
   space=ctx.measureText(" ").width
@@ -226,10 +212,10 @@ function stringwrap(ctx, boxwidth, boxheight, text){
 }
 
 
-// problems
-// text moving by word and not by char
-
 function DrawTextBox(display, ctx, text, t, text_start){
+  if(t-text_start - 100 > text.length || text.length == 0){
+    tstart=false;
+  }
   if(display){
     fontSize=20;
     
@@ -251,11 +237,8 @@ function DrawTextBox(display, ctx, text, t, text_start){
     
   }
   
+  
 }
-
-
-
-
 
 
 var context = new AudioContext()
@@ -304,7 +287,6 @@ function draw(){
           text_t=t;
           tstart=!tstart;
         }
-        drawtext=true;
       }
       
 
@@ -312,7 +294,7 @@ function draw(){
       scoord = global2local(player, screen);
       ctx.fillRect(scoord.x,scoord.y,player.size,player.size);
       
-      DrawTextBox(drawtext, ctx, gburg, t, text_t)
+      DrawTextBox(tstart, ctx, gburg, t, text_t)
       
       //iterate time
       t++;
