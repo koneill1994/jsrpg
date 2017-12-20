@@ -7,10 +7,14 @@ var ms_frame_delay=30;
 
 var t=0;
 
+var chunksize=512
+
+var rseed = 1;
+
 var player={
   x: -200,
   y: -200,
-  color: '#000000',
+  color: '#ffffff',
   size: 16,
   speed: 4
 }
@@ -25,10 +29,10 @@ var mouse ={
   y: canvas.height/2
 }
 
-objects=[]
+var objects=[]
 
 
-num_blocks = 200
+num_blocks = 25
 
 for(var i=0; i<num_blocks; i++){
   objects.push(random_block());
@@ -37,6 +41,19 @@ for(var i=0; i<num_blocks; i++){
 gburg = "Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal. Now we are engaged in a great civil war, testing whether that nation, or any nation so conceived and so dedicated, can long endure. We are met on a great battle-field of that war. We have come to dedicate a portion of that field, as a final resting place for those who here gave their lives that that nation might live. It is altogether fitting and proper that we should do this."
 
 
+// testing chunk code
+
+var active_chunks=[]
+/*
+for(var x=-2; x<4; x++){
+  for(var y=-2  ; y<4; y++){
+    active_chunks.push(generate_chunk(x,y,chunksize));
+  }
+}*/
+
+//active_chunks.push(generate_chunk(0,0,chunksize));
+
+// end chunk test
 
 
 // keyboard input
@@ -50,7 +67,54 @@ window.addEventListener('keyup', function (e) {
   keys[e.keyCode] = false;
 })
 
+// recalculate nearby chunks based on the central chunk's coords
+function recalculate_active_chunks(c_chunkx,c_chunky){
+  active_chunks=[]
+  for(var i=c_chunkx-3; i<c_chunkx+3; i++){
+    for(var j=c_chunky-3  ; j<c_chunky+3; j++){
+      c=generate_chunk(i,j,chunksize);
+      active_chunks.push(c);
+      objects=objects.concat(c.blocks)
+    }
+  }
+  console.log(objects)
+}
 
+function get_chunk_location(player, chunksize){
+  return [Math.floor(player.x/chunksize),Math.floor(player.y/chunksize)]
+}
+
+function generate_chunk(x,y, chunksize){
+  var chunk = {
+    chunkx: x,
+    chunky: y,
+    xcoord: x*chunksize,
+    ycoord: y*chunksize,
+    seed: cantor(x,y),
+    blocks: generate_chunk_blocks(x*chunksize, y*chunksize, num_blocks, cantor(x,y), chunksize),
+  }
+  return chunk;
+}
+
+function generate_chunk_blocks(xcoord, ycoord, num, seed, chunksize){
+  rseed=seed;
+  b=[]
+  for(var i=0; i<num; i++){
+    b.push(det_random_block(xcoord, xcoord+chunksize, ycoord, ycoord+chunksize));
+  }
+  return b;
+}
+
+function det_random_block(x1,x2,y1,y2){
+  var block={
+    x: roundDownToMult(getdetRndInteger(x1, x2),4),
+    y: roundDownToMult(getdetRndInteger(y1, y2),4),
+    sizex: roundDownToMult(getdetRndInteger(8, 128),4),
+    sizey: roundDownToMult(getdetRndInteger(8, 128),4),
+    color: "#000000"
+  }
+  return block;  
+}
 
 function random_block(){
   var block={
@@ -71,6 +135,15 @@ function roundDownToMult(num, mult){
 function getRndInteger(min, max) {
     return Math.floor(Math.random() * (max - min) ) + min;
 } 
+
+function getdetRndInteger(min, max) {
+    return Math.floor(seedrandom() * (max - min) ) + min;
+} 
+
+function seedrandom() {
+    var x = Math.sin(rseed++) * 10000;
+    return x - Math.floor(x);
+}
 
 //check if the object is colliding with anything else
 function checkbounds_movesafe(x1,x2,y1,y2, objects){
@@ -174,6 +247,11 @@ function local2global(obj, screen){
   return scoords
 }
 
+//cantor pairing function
+function cantor(k1, k2){
+  return (k1+k2)*(k1+k2+1)/2 + k2
+}
+
 // get mouse's local coordinates
 function mouse_position(event){
   var rect = canvas.getBoundingClientRect();
@@ -234,10 +312,7 @@ function DrawTextBox(display, ctx, text, t, text_start){
     for(var i=0; i<strings.length; i++){
       ctx.fillText(strings[i], 80, canvas.height-270 + (fontSize * i));
     }
-    
   }
-  
-  
 }
 
 
@@ -252,14 +327,20 @@ var tstart=false;
 var text_t = 0;
 var drawtext=false
 
+var player_chunk_location=[0,0]
+var oldchunkloc=[-999,-999]
+
 function draw(){
     if (canvas.getContext){
       var ctx = canvas.getContext('2d');
       
       color_pulse(t);
       
-      
-      if(keys){
+      oldchunkloc=player_chunk_location
+      player_chunk_location=get_chunk_location(player, chunksize)
+      if(oldchunkloc[0]!=player_chunk_location[0] || oldchunkloc[1]!=player_chunk_location[1]){
+        recalculate_active_chunks(player_chunk_location[0],player_chunk_location[1]); 
+        console.log("recalculating")
       }
       
       UpdateScreenPos(player);
@@ -269,11 +350,14 @@ function draw(){
       ctx.fillStyle=color_pulse(t);
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
-      for(var i=0; i<objects.length; i++){
-        ctx.fillStyle = objects[i].color;
-        scoord=global2local(objects[i],screen);
-        ctx.fillRect(scoord.x,scoord.y,objects[i].sizex,objects[i].sizey);
+      for(var i=0; i<active_chunks.length; i++){
+        for(var j=0; j<active_chunks[i].blocks.length; j++){
+          ctx.fillStyle = active_chunks[i].blocks[j].color;
+          scoord=global2local(active_chunks[i].blocks[j],screen);
+          ctx.fillRect(scoord.x,scoord.y,active_chunks[i].blocks[j].sizex,active_chunks[i].blocks[j].sizey);
+        }
       }
+      
 
       // change physics in the draw loop because we're smart
       if (keys && (keys[37] || keys[65])) {move_safe(player, objects, 37); }
