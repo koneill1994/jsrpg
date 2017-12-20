@@ -16,10 +16,14 @@ var player={
 }
 
 var screen={
-  x: 0,
-  y: 0
+  x: -50,
+  y: -100
 }
 
+var mouse ={
+  x: canvas.width/2,
+  y: canvas.height/2
+}
 
 objects=[]
 
@@ -164,11 +168,45 @@ function color_pulse(t){
   
 }
 
+// turns global (worldmap) coordinates into local (on-screen) coordinates
+function global2local(obj, screen){
+  var scoords={
+    x: obj.x-screen.x,
+    y: obj.y-screen.y,
+  }
+  return scoords
+}
+
+// turns local (on-screen) coordinates into global (worldmap) coordinates
+function local2global(obj, screen){
+  var scoords={
+    x: obj.x+screen.x,
+    y: obj.y+screen.y,
+  }
+  return scoords
+}
+
+// get mouse's local coordinates
+function mouse_position(event){
+  var rect = canvas.getBoundingClientRect();
+  mouse.x= event.clientX - rect.left;     // Get the horizontal coordinate
+  mouse.y= event.clientY - rect.top;     // Get the vertical coordinate
+}
+
+// update screen position, centered halfway between the player and the mouse
+function UpdateScreenPos(player){
+  m_screen = local2global(mouse, screen)
+  screen.x = ((player.x + player.size/2)+(m_screen.x))/2 - (canvas.width/2);
+  screen.y = ((player.y + player.size/2)+(m_screen.y))/2 - (canvas.height/2);
+  
+}
+
+
 var context = new AudioContext()
 var o = context.createOscillator()
 o.type = "triangle"
 o.connect(context.destination)
-o.start()
+//o.start()
 
 
 function draw(){
@@ -181,6 +219,7 @@ function draw(){
       if(keys){
       }
       
+      UpdateScreenPos(player);
       
       // blit away previous frame
       //ctx.fillStyle='#e5f442';
@@ -189,7 +228,8 @@ function draw(){
       
       for(var i=0; i<objects.length; i++){
         ctx.fillStyle = objects[i].color;
-        ctx.fillRect(objects[i].x,objects[i].y,objects[i].sizex,objects[i].sizey);
+        scoord=global2local(objects[i],screen);
+        ctx.fillRect(scoord.x,scoord.y,objects[i].sizex,objects[i].sizey);
       }
 
       // change physics in the draw loop because we're smart
@@ -202,10 +242,10 @@ function draw(){
       
 
              
-      if (keys && keys[37]) {move_safe(player, objects, 37); }
-      if (keys && keys[39]) {move_safe(player, objects, 39); }
-      if (keys && keys[38]) {move_safe(player, objects, 38); }
-      if (keys && keys[40]) {move_safe(player, objects, 40); }
+      if (keys && (keys[37] || keys[65])) {move_safe(player, objects, 37); }
+      if (keys && (keys[39] || keys[68])) {move_safe(player, objects, 39); }
+      if (keys && (keys[38] || keys[87])) {move_safe(player, objects, 38); }
+      if (keys && (keys[40] || keys[83])) {move_safe(player, objects, 40); }
       
       
       if(!checkbounds(player,objects)){
@@ -214,7 +254,8 @@ function draw(){
       else{
       ctx.fillStyle = player.color;
       }
-      ctx.fillRect(player.x,player.y,player.size,player.size);
+      scoord = global2local(player, screen);
+      ctx.fillRect(scoord.x,scoord.y,player.size,player.size);
       
       
       //iterate time
