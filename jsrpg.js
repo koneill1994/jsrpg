@@ -34,6 +34,10 @@ for(var i=0; i<num_blocks; i++){
   objects.push(random_block());
 }
 
+gburg = "Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal. Now we are engaged in a great civil war, testing whether that nation, or any nation so conceived and so dedicated, can long endure. We are met on a great battle-field of that war. We have come to dedicate a portion of that field, as a final resting place for those who here gave their lives that that nation might live. It is altogether fitting and proper that we should do this."
+
+
+
 
 // keyboard input
 keys=[]
@@ -200,22 +204,52 @@ function UpdateScreenPos(player){
   
 }
 
-function DrawTextBox(ctx, text, t, text_start){
-  fontSize=20;
-  
-  text_new = text.substring(0, t-text_start)
-  
-  ctx.fillStyle = "#444444";
-  ctx.globalAlpha = 0.6;
-  ctx.fillRect(50,canvas.height-300,canvas.width-100,250);
-  ctx.globalAlpha = 1.0;
-  
-  // use measureText(text) to figure out how to get it to go onto the next line
-  
-  
-  ctx.fillStyle = "#ffffff"
-  ctx.font = fontSize+'px Arial';
-  ctx.fillText(text_new,80,canvas.height-270);
+function stringwrap(ctx, boxwidth, boxheight, text){
+  strings=[]
+  space=ctx.measureText(" ").width
+  words=(text+" ").split(" ")
+  linesum=0
+  line=[]
+  for(var i=0; i<words.length; i++){
+    w=ctx.measureText(words[i]).width;
+    if(linesum+space+w > boxwidth || i==words.length-1){
+      strings.push(line.join(" "));
+      line=[words[i]]
+      linesum=w+space
+    }
+    else{
+      line.push(words[i])
+      linesum+=w+space
+    }
+  } 
+  return strings
+}
+
+
+// problems
+// text moving by word and not by char
+
+function DrawTextBox(display, ctx, text, t, text_start){
+  if(display){
+    fontSize=20;
+    
+    text_new = text.substring(0, t-text_start)
+    
+    ctx.fillStyle = "#444444";
+    ctx.globalAlpha = 0.6;
+    ctx.fillRect(50,canvas.height-300,canvas.width-100,250);
+    ctx.globalAlpha = 1.0;
+    
+    
+    ctx.fillStyle = "#ffffff"
+    ctx.font = fontSize+'px Arial';
+    
+    var strings = stringwrap(ctx, canvas.width-150, 250, text_new); //parameterize these later
+    for(var i=0; i<strings.length; i++){
+      ctx.fillText(strings[i], 80, canvas.height-270 + (fontSize * i));
+    }
+    
+  }
   
 }
 
@@ -233,6 +267,7 @@ o.connect(context.destination)
 
 var tstart=false;
 var text_t = 0;
+var drawtext=false
 
 function draw(){
     if (canvas.getContext){
@@ -269,7 +304,7 @@ function draw(){
           text_t=t;
           tstart=!tstart;
         }
-        DrawTextBox(ctx, "four score and seven years ago our forefathers brought fourth a new nation conceived in liberty and the pursuit of happiness", t, text_t)
+        drawtext=true;
       }
       
 
@@ -277,6 +312,7 @@ function draw(){
       scoord = global2local(player, screen);
       ctx.fillRect(scoord.x,scoord.y,player.size,player.size);
       
+      DrawTextBox(drawtext, ctx, gburg, t, text_t)
       
       //iterate time
       t++;
