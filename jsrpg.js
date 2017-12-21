@@ -7,7 +7,7 @@ var ms_frame_delay=30;
 
 var t=0;
 
-var chunksize=512
+var chunksize=1024
 
 var rseed = 1;
 
@@ -32,7 +32,7 @@ var mouse ={
 var objects=[]
 
 
-num_blocks = 25
+num_blocks = 100
 
 for(var i=0; i<num_blocks; i++){
   objects.push(random_block());
@@ -44,16 +44,6 @@ gburg = "Four score and seven years ago our fathers brought forth on this contin
 // testing chunk code
 
 var active_chunks=[]
-/*
-for(var x=-2; x<4; x++){
-  for(var y=-2  ; y<4; y++){
-    active_chunks.push(generate_chunk(x,y,chunksize));
-  }
-}*/
-
-//active_chunks.push(generate_chunk(0,0,chunksize));
-
-// end chunk test
 
 
 // keyboard input
@@ -80,6 +70,7 @@ function recalculate_active_chunks(c_chunkx,c_chunky){
   console.log(objects)
 }
 
+// figure out what the chunk coordinates are for the chunk the player is currently in
 function get_chunk_location(player, chunksize){
   return [Math.floor(player.x/chunksize),Math.floor(player.y/chunksize)]
 }
@@ -96,6 +87,7 @@ function generate_chunk(x,y, chunksize){
   return chunk;
 }
 
+// generate the objects within a chunk
 function generate_chunk_blocks(xcoord, ycoord, num, seed, chunksize){
   rseed=seed;
   b=[]
@@ -105,6 +97,7 @@ function generate_chunk_blocks(xcoord, ycoord, num, seed, chunksize){
   return b;
 }
 
+// generate a random block deterministically
 function det_random_block(x1,x2,y1,y2){
   var block={
     x: roundDownToMult(getdetRndInteger(x1, x2),4),
@@ -140,6 +133,7 @@ function getdetRndInteger(min, max) {
     return Math.floor(seedrandom() * (max - min) ) + min;
 } 
 
+// deterministic random number gen (js doesn't let you set the seed)
 function seedrandom() {
     var x = Math.sin(rseed++) * 10000;
     return x - Math.floor(x);
@@ -336,11 +330,10 @@ function draw(){
       
       color_pulse(t);
       
-      oldchunkloc=player_chunk_location
       player_chunk_location=get_chunk_location(player, chunksize)
       if(oldchunkloc[0]!=player_chunk_location[0] || oldchunkloc[1]!=player_chunk_location[1]){
         recalculate_active_chunks(player_chunk_location[0],player_chunk_location[1]); 
-        console.log("recalculating")
+        oldchunkloc=player_chunk_location
       }
       
       UpdateScreenPos(player);
