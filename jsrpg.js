@@ -389,7 +389,7 @@ var ms_frame_delay=30;
 
 var t=0;
 
-var chunksize=1024
+var chunksize=512
 
 var rseed = 1;
 
@@ -414,7 +414,7 @@ var mouse ={
 var objects=[]
 
 
-num_blocks = 100
+num_blocks = 4
 
 gburg = "Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal. Now we are engaged in a great civil war, testing whether that nation, or any nation so conceived and so dedicated, can long endure. We are met on a great battle-field of that war. We have come to dedicate a portion of that field, as a final resting place for those who here gave their lives that that nation might live. It is altogether fitting and proper that we should do this."
 
@@ -443,7 +443,6 @@ function generate_noise_image(x,y,w,h,ctx){
   for(var i=0; i<id.data.length; i+=4){
     xcoord=scale*((i/4)%w+x);
     ycoord=scale*(Math.floor((i/4)/w)+y);
-    //console.log(pn.noise(xcoord/10,ycoord/10,0));
     id.data[i]     = pn.noise(xcoord,ycoord,0)*255; // red
     id.data[i + 1] = pn.noise(xcoord,ycoord,0)*255; // green
     id.data[i + 2] = pn.noise(xcoord,ycoord,0)*255; // blue
@@ -452,11 +451,58 @@ function generate_noise_image(x,y,w,h,ctx){
   ctx.putImageData(id, 25,25);
 }
 
+function color_from_elevation(elevation){
+  //console.log(elevation)
+  if(elevation < 0.2){
+    return [247, 234, 140]
+  }
+  if(elevation < 0.4){
+    return [106, 224, 51]
+  }
+  if(elevation < 0.6){
+    return [113, 158, 119]
+  }
+  if(elevation < 0.8){
+    return [148, 158, 149]
+  }
+  else{
+    return [244, 247, 245]
+  }  
+}
+
+
+// this function takes freakin forever
+function generate_noise_octave(x,y,w,h){
+  scales=[4.7,1.3,.1]
+  ratios=[.166, .33,.5]
+  //scales=[.1]
+  //ratios=[1]
+  //var id = ctx.getImageData(x,y,w,h);
+  id=new Uint8ClampedArray(w*h*4);
+  for(var i=0; i<id.length; i+=4){
+    xcoord=((i/4)%w+x);
+    ycoord=(Math.floor((i/4)/w)+y);
+    var e=0;
+    for(j=0; j<scales.length; j++){
+      //console.log("{"+xcoord+","+ycoord+"): "+j);
+      e+=ratios[j]*pn.noise(xcoord*scales[j],ycoord*scales[j],0)
+    }
+    col=color_from_elevation(e)
+    id[i]     = col[0]; // red
+    id[i + 1] = col[1]; // green
+    id[i + 2] = col[2]; // blue
+    id[i+3]   = 255;
+  }
+  return id;
+}
+
+
 // recalculate nearby chunks based on the central chunk's coords
 function recalculate_active_chunks(c_chunkx,c_chunky){
   active_chunks=[]
-  for(var i=c_chunkx-3; i<c_chunkx+3; i++){
-    for(var j=c_chunky-3  ; j<c_chunky+3; j++){
+  range=2
+  for(var i=c_chunkx-range; i<c_chunkx+range; i++){
+    for(var j=c_chunky-range  ; j<c_chunky+range; j++){
       c=generate_chunk(i,j,chunksize);
       active_chunks.push(c);
       objects=objects.concat(c.blocks)
@@ -469,14 +515,15 @@ function get_chunk_location(player, chunksize){
   return [Math.floor(player.x/chunksize),Math.floor(player.y/chunksize)]
 }
 
-function generate_chunk(x,y, chunksize){
+function generate_chunk(xpos,ypos, chunksize){
   var chunk = {
-    chunkx: x,
-    chunky: y,
-    xcoord: x*chunksize,
-    ycoord: y*chunksize,
-    seed: cantor(x,y),
-    blocks: generate_chunk_blocks(x*chunksize, y*chunksize, num_blocks, cantor(x,y), chunksize),
+    chunkx: xpos,
+    chunky: ypos,
+    x: xpos*chunksize,
+    y: ypos*chunksize,
+    seed: cantor(xpos,ypos),
+    blocks: generate_chunk_blocks(xpos*chunksize, ypos*chunksize, num_blocks, cantor(xpos,ypos), chunksize),
+    //terrain: new ImageData(generate_noise_octave(xpos*chunksize, ypos*chunksize, chunksize, chunksize),chunksize,chunksize), // try moving this to a separate thread (web worker?)
   }
   return chunk;
 }
@@ -496,8 +543,8 @@ function det_random_block(x1,x2,y1,y2){
   var block={
     x: roundDownToMult(getdetRndInteger(x1, x2),4),
     y: roundDownToMult(getdetRndInteger(y1, y2),4),
-    sizex: roundDownToMult(getdetRndInteger(8, 128),4),
-    sizey: roundDownToMult(getdetRndInteger(8, 128),4),
+    sizex: roundDownToMult(getdetRndInteger(8, 64),4),
+    sizey: roundDownToMult(getdetRndInteger(8, 64),4),
     color: "#000000"
   }
   return block;  
@@ -649,6 +696,7 @@ function local2global(obj, screen){
 }
 
 //cantor pairing function
+// does not necessarily work as intended for negative numbers
 function cantor(k1, k2){
   return (k1+k2)*(k1+k2+1)/2 + k2
 }
@@ -759,6 +807,21 @@ function draw(){
       //testing perlin noise 
       generate_noise_image(screen.x+25,screen.y+25,100,100,ctx);
       
+      // draw all the backgrounds before we draw the objects
+      // it takes forever
+      // and also doesn't even show the chunks
+      for(var i=0; i<active_chunks.length; i++){
+        obj=active_chunks[i]
+        //console.log(obj.x+","+obj.y);
+        /*
+        if(check_collide_general(obj.x,obj.chunksize,obj.y,obj.chunksize, 
+          screen.x, canvas.width, screen.y, canvas.height)){ // only draw if on-screen
+          * */
+          if(true && obj.terrain){
+            localcoords=global2local(obj, screen);
+            ctx.putImageData(obj.terrain, localcoords.x, localcoords.y);
+          }
+      }
       
       // draw all the non-player objects
       for(var i=0; i<active_chunks.length; i++){
