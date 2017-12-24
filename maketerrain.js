@@ -386,17 +386,17 @@ var pn = new Perlin('random seed');
 
 function color_from_elevation(elevation){
   //console.log(elevation)
-  if(elevation < 0.5){
+  if(elevation < 0.4){
     return [123, 128, 221]
   }
-  if(elevation < 0.55){
+  if(elevation < 0.5){
     return [106, 224, 51]
   }
-  if(elevation < 0.65){
+  if(elevation < 0.6){
     return [113, 158, 119]
   }
   if(elevation < 0.8){
-    return [148, 158, 149]
+    return [36, 189, 24]
   }
   else{
     return [244, 247, 245]
@@ -406,7 +406,7 @@ function color_from_elevation(elevation){
 
 // this function takes freakin forever
 function generate_noise_octave(x,y,w,h){
-  scales=[.01,.1,1.3]
+  scales=[.001,.01,.13]
   ratios=[.6, .3,.1]
   //scales=[.01]
   //ratios=[1]
