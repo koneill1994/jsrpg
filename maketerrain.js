@@ -403,11 +403,57 @@ function color_from_elevation(elevation){
   }  
 }
 
+function colormixproportional(c1,c2,p){
+  c3 = [  (c1[0]*p + c2[0]*(1-p)),
+          (c1[1]*p + c2[1]*(1-p)),
+          (c1[2]*p + c2[2]*(1-p))];
+  return c3;
+}
+
+function elevation_color_smooth(elevation){
+  elist = [0,0.2,0.4,0.5,0.6,0.8,1]
+  clist =  [[28, 115, 255],
+            [123, 128, 221],
+            [255, 255, 79],
+            [101, 242, 58],
+            [16, 160, 16],
+            [22, 175, 76],
+            [255,255,255]];
+            
+  //sanity check
+  if(elist.length != clist.length){
+    console.log("list length mismatch in elevation_color_smooth(): "+elist.length+" vs "+clist.length);
+    throw new Error("list length mismatch in elevation_color_smooth()");
+  }
+  
+  for(i=0; i<elist.length; i++){
+    if(elevation == elist[i]){
+      return clist[i];
+    }
+    if(elevation < elist[i]){
+      prop = (elevation - elist[i-1])/(elist[i] - elist[i-1])
+      return colormixproportional(clist[i],clist[i-1],prop)
+    }
+  }
+  return [255,0,0]
+}
+
+function roundToNearest(num,mult){
+  if(mult==0){
+    return num;
+  }
+  rem=num%mult;
+  if(rem==0){
+    return num;
+  }
+  return num+mult-rem;
+}
+
 
 // this function takes freakin forever
 function generate_noise_octave(x,y,w,h){
-  scales=[.001,.01,.13]
-  ratios=[.6, .3,.1]
+  scales=[.0001,.001,.05]
+  ratios=[.65, .3,.05]
   //scales=[.01]
   //ratios=[1]
   //var id = ctx.getImageData(x,y,w,h);
@@ -420,7 +466,8 @@ function generate_noise_octave(x,y,w,h){
       //console.log("{"+xcoord+","+ycoord+"): "+j);
       e+=ratios[j]*pn.noise(xcoord*scales[j],ycoord*scales[j],0)
     }
-    col=color_from_elevation(e)
+    e_step = roundToNearest(e,.01)
+    col=elevation_color_smooth(e_step)
     id[i]     = col[0]; // red
     id[i + 1] = col[1]; // green
     id[i + 2] = col[2]; // blue

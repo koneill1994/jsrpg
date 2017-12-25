@@ -437,6 +437,7 @@ window.addEventListener('keyup', function (e) {
   keys[e.keyCode] = false;
 })
 
+
 // generate perlin image
 // pn.noise(100,200,0); // x,y,z
 function generate_noise_image(x,y,w,h,ctx){
@@ -794,6 +795,7 @@ function stringwrap(ctx, boxwidth, boxheight, text){
 function DrawTextBox(display, ctx, text, t, text_start){
   if(t-text_start - 100 > text.length || text.length == 0){
     tstart=false;
+    paused=false;
   }
   if(display){
     fontSize=20;
@@ -826,7 +828,9 @@ o.connect(context.destination)
 
 var tstart=false;
 var text_t = 0;
-var drawtext=false
+var drawtext=false;
+
+var paused=false;
 
 var player_chunk_location=[0,0]
 var oldchunkloc=[-999,-999]
@@ -836,6 +840,11 @@ var oldchunkloc=[-999,-999]
 recalculate_active_chunks_efficient(player_chunk_location[0],player_chunk_location[1],active_chunks); 
 
 // optimization idea: only draw images within the screen's bounding area
+
+
+// idea: encode number & type of objects within each chunk
+//   in relation to the biome of that chunk
+
 
 function draw(){
     if (canvas.getContext){
@@ -849,17 +858,20 @@ function draw(){
         oldchunkloc=player_chunk_location
       }
       
-      UpdateScreenPos(player);
-      
+      if(!paused){
+        UpdateScreenPos(player);
+      }
       
       // blit away previous frame
       //ctx.fillStyle='#e5f442';
       ctx.fillStyle=color_pulse(t);
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
-      
+      /*
       //testing perlin noise 
       generate_noise_image(screen.x+25,screen.y+25,100,100,ctx);
+      */
+      
       
       // draw all the backgrounds before we draw the objects
       // it takes forever
@@ -890,18 +902,25 @@ function draw(){
         }
       }
       
-      // change physics in the draw loop because we're smart
-      // (control w/ arrow keys (37-40) or wasd
-      if (keys && (keys[37] || keys[65])) {move_safe(player, objects, 37); }
-      if (keys && (keys[39] || keys[68])) {move_safe(player, objects, 39); }
-      if (keys && (keys[38] || keys[87])) {move_safe(player, objects, 38); }
-      if (keys && (keys[40] || keys[83])) {move_safe(player, objects, 40); }
+      if(!paused){
+        // change physics in the draw loop because we're smart
+        // (control w/ arrow keys (37-40) or wasd
+        if (keys && (keys[37] || keys[65])) {move_safe(player, objects, 37); }
+        if (keys && (keys[39] || keys[68])) {move_safe(player, objects, 39); }
+        if (keys && (keys[38] || keys[87])) {move_safe(player, objects, 38); }
+        if (keys && (keys[40] || keys[83])) {move_safe(player, objects, 40); }
+      }
       
       // text box test
       if (keys && keys[32]) {
         if(!tstart){
           text_t=t;
           tstart=!tstart;
+          paused=true;
+        }
+        else{
+          tstart=!tstart;
+          paused=false;
         }
       }
       
