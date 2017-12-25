@@ -418,6 +418,7 @@ num_blocks = 4
 
 gburg = "Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal. Now we are engaged in a great civil war, testing whether that nation, or any nation so conceived and so dedicated, can long endure. We are met on a great battle-field of that war. We have come to dedicate a portion of that field, as a final resting place for those who here gave their lives that that nation might live. It is altogether fitting and proper that we should do this."
 
+adam="Madam, I'm adam."
 
 var active_chunks=[]
 
@@ -428,6 +429,7 @@ chunk_range=2
 // keyboard input
 keys=[]
 keypress=[]
+/*
 kd=false;
 window.addEventListener('keypress', function (e) {
   if(kd==false){
@@ -437,13 +439,14 @@ window.addEventListener('keypress', function (e) {
     kd=true; // this is a mess, needs to be specific to the individual key
   }
 })
+* */
 window.addEventListener('keydown', function (e) {
   keys = (keys || []);
   keys[e.keyCode] = true;
 })
 window.addEventListener('keyup', function (e) {
   keys[e.keyCode] = false;
-  kd=false;
+  //kd=false;
 })
 
 
@@ -782,6 +785,8 @@ function UpdateScreenPos(player){
   
 }
 
+
+
 //wrap text around based on text box size
 function stringwrap(ctx, boxwidth, boxheight, text){
   strings=[]
@@ -804,6 +809,40 @@ function stringwrap(ctx, boxwidth, boxheight, text){
   return strings
 }
 
+// output a substring of the text based on the time its been displayed for
+// waiting longer for punctuation
+function text_scroll(text, time, text_speed){
+  punc=".,;"
+  punc_index=[]
+  punc_wait=8;
+  for(i=0;i<text.length; i++){
+    if(punc.includes(text[i])){
+      punc_index.push(i);
+    }
+  }
+  
+  last_punc=0;
+  pointer=Math.floor(time*text_speed)
+  offset=0;
+  for(i=0; i<punc_index.length; i++){
+    if(pointer>punc_index[i]){
+      offset+=punc_wait*text_speed;
+      last_punc=i;
+    }
+    else{
+      break;
+    }
+  }
+  // this doesn't work and im not sure why
+  pos=pointer-Math.floor(offset)
+  if(pos<last_punc){
+    pos=last_punc+1;
+  }
+  
+  text_new = text.substring(0, pos);
+  
+  return text_new;
+}
 
 function DrawTextBox(display, ctx, text, t, text_start){
   if(t-text_start - 100 > text.length || text.length == 0){
@@ -813,7 +852,8 @@ function DrawTextBox(display, ctx, text, t, text_start){
   if(display){
     fontSize=20;
     
-    text_new = text.substring(0, t-text_start)
+    //text_new = text.substring(0, t-text_start)
+    text_new=text_scroll(text,t-text_start,1);
     
     ctx.fillStyle = "#444444";
     ctx.globalAlpha = 0.6;
@@ -830,6 +870,8 @@ function DrawTextBox(display, ctx, text, t, text_start){
     }
   }
 }
+
+
 
 
 var context = new AudioContext()
@@ -925,8 +967,8 @@ function draw(){
       }
       
       // text box test
-      if (keypress && keypress[32]) {
-        keypress[32] = false;
+      if (keys && keys[32]) {
+        //keypress[32] = false;
         if(!tstart){
           text_t=t;
           tstart=!tstart;
@@ -943,7 +985,7 @@ function draw(){
       scoord = global2local(player, screen);
       ctx.fillRect(scoord.x,scoord.y,player.size,player.size);
       
-      DrawTextBox(tstart, ctx, gburg, t, text_t)
+      DrawTextBox(tstart, ctx, adam, t, text_t)
       
       
       //iterate time
