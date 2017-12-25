@@ -419,23 +419,36 @@ num_blocks = 4
 gburg = "Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal. Now we are engaged in a great civil war, testing whether that nation, or any nation so conceived and so dedicated, can long endure. We are met on a great battle-field of that war. We have come to dedicate a portion of that field, as a final resting place for those who here gave their lives that that nation might live. It is altogether fitting and proper that we should do this."
 
 
-// testing chunk code
-
 var active_chunks=[]
 
 chunk_range=2
 
 
+
 // keyboard input
 keys=[]
+keypress=[]
+kd=false;
+window.addEventListener('keypress', function (e) {
+  if(kd==false){
+    console.log("key fire: "+e.keyCode);
+    keypress = (keypress || []);
+    keypress[e.keyCode] = true;
+    kd=true; // this is a mess, needs to be specific to the individual key
+  }
+})
 window.addEventListener('keydown', function (e) {
   keys = (keys || []);
   keys[e.keyCode] = true;
-  o.frequency=e.keyCode;
 })
 window.addEventListener('keyup', function (e) {
   keys[e.keyCode] = false;
+  kd=false;
 })
+
+
+
+
 
 
 // generate perlin image
@@ -912,7 +925,8 @@ function draw(){
       }
       
       // text box test
-      if (keys && keys[32]) {
+      if (keypress && keypress[32]) {
+        keypress[32] = false;
         if(!tstart){
           text_t=t;
           tstart=!tstart;
